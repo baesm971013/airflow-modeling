@@ -1,0 +1,11 @@
+.env
+
+config/
+
+data/
+
+logs/
+
+plugins/
+
+dags/__pycache__
