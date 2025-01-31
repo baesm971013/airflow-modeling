@@ -21,48 +21,41 @@ default_args = {
 }
 
 dag_args = dict(
-    dag_id = "Baesm_example",
+    dag_id = "baesm_tutorial_xcom",
     default_args = default_args,
-    description = "브랜치 설명",
-    schedule_interval = timedelta(hours=4),
+    description = "pythonoperator",
+    schedule_interval = timedelta(hours=1),
     start_date = datetime(2025,1,31),
-    tags = ["example-baems"],
+    tags = ["xcom"],
 )
 
-
-
 def random_branch_path():
-    from random import randint          
+    from random import randint
     return "cal_a_id" if randint(1,2)==1 else "cal_m_id"
 
-def calc_add(x,y,**kwargs):
+def calc_add(x,y, **kwargs):
     result = x+y
-    print("x+y = ", result)
-    kwargs['task_instance'].xcom_push(key="calc_result", value=result)
-    return "calc add"
+    print(f"x+y = {result}")
+    kwargs["task_instance"].xcom_push(key="calc_result", value=result)
 
 def calc_mul(x,y, **kwargs):
     result = x*y
-    print("x*y = ", result)
-    kwargs['task_instance'].xcom_push(key="calc_result", value=result)
-    return "calc mul"
+    print(f"x*y = {result}")
+    kwargs["task_instance"].xcom_push(key="calc_result", value=result)
 
 def print_result(**kwargs):
-    r = kwargs['task_instance'].xcom_pull(key="calc_result")
-    print("message:", r)
-    print("*"*100)
+    r = kwargs['task_instance'].xcom_pull(key='calc_result')
+    print("message: ", r)
+    print("*" * 100)
     print(kwargs)
-    
-
 
 def end_seq():
-    print("end")
-    print("==="*30)
+    print("----------------end----------------")
     
 with DAG(**dag_args) as dag:
     start = BashOperator(
-        task_id = "start",
-        bash_command = "echo 시작!!!!!!!!!!!"
+        task_id="start",
+        bash_command="echo 시작!!!!"
     )
     
     branch = BranchPythonOperator(
@@ -73,33 +66,45 @@ with DAG(**dag_args) as dag:
     calc_add = PythonOperator(
         task_id = "cal_a_id",
         python_callable = calc_add,
-        op_kwargs = {"x":10, "y":4}
+        op_kwargs = {
+            "x":10,
+            "y":4,
+        }
     )
     
     calc_mul = PythonOperator(
         task_id = "cal_m_id",
         python_callable = calc_mul,
-        op_kwargs = {"x":10, "y":4}
+        op_kwargs = {
+            "x":10,
+            "y":4,
+        }
     )
+    
     msg = PythonOperator(
-        task_id='msg',
-        python_callable=print_result,
-        trigger_rule=TriggerRule.NONE_FAILED
+        task_id = "msg",
+        python_callable = print_result,
+        trigger_rule = TriggerRule.NONE_FAILED
     )
-
+    
     complete_py = PythonOperator(
-        task_id='complete_py',
-        python_callable=end_seq,
-        trigger_rule=TriggerRule.NONE_FAILED
+        task_id = "complete_py",
+        python_callable = end_seq,
+        trigger_rule = TriggerRule.NONE_FAILED
     )
-
+    
     complete = BashOperator(
-        task_id='complete_bash',
+        task_id = "complete_bash",
         depends_on_past=False,
-        bash_command='echo "complete~!"',
-        trigger_rule=TriggerRule.NONE_FAILED
+        bash_command = "echo 'complete'",
+        trigger_rule = TriggerRule.NONE_FAILED
+
     )
     
     start >> branch >> calc_add >> msg >> complete_py >> complete
-    start >> branch >> calc_mul >> msg >> complete
+    start >> branch >> calc_mul >> msg >>complete
+
+
     
+
+
